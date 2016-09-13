@@ -117,11 +117,13 @@ def train_conv_net(datasets,
         new_data = datasets[0]
     new_data = np.random.permutation(new_data)
     n_batches = new_data.shape[0]/batch_size
-    n_train_batches = int(np.round(n_batches*0.9))
+    n_train_batches = int(np.round(n_batches*0.7))
     #divide train set into train/val sets 
     test_set_x = datasets[1][:,:img_h] 
     test_set_y = np.asarray(datasets[1][:,-1],"int32")
+    # print len(new_data)
     train_set = new_data[:n_train_batches*batch_size,:]
+    # print len(train_set)
     val_set = new_data[n_train_batches*batch_size:,:]     
     train_set_x, train_set_y = shared_dataset((train_set[:,:img_h],train_set[:,-1]))
     val_set_x, val_set_y = shared_dataset((val_set[:,:img_h],val_set[:,-1]))
@@ -131,7 +133,8 @@ def train_conv_net(datasets,
             x: val_set_x[index * batch_size: (index + 1) * batch_size],
              y: val_set_y[index * batch_size: (index + 1) * batch_size]},
                                 allow_input_downcast=True)
-            
+    print "x: " + str(val_set_x)
+    # print val_set
     #compile theano functions to get train/val/test errors
     test_model = theano.function([index], classifier.errors(y),
              givens={
@@ -175,7 +178,7 @@ def train_conv_net(datasets,
         train_losses = [test_model(i) for i in xrange(n_train_batches)]
         train_perf = 1 - np.mean(train_losses)
         val_losses = [val_model(i) for i in xrange(n_val_batches)]
-        val_perf = 1- np.mean(val_losses)                        
+        val_perf = 1- np.mean(val_losses)                       
         print('epoch: %i, training time: %.2f secs, train perf: %.2f %%, val perf: %.2f %%' % (epoch, time.time()-start_time, train_perf * 100., val_perf*100.))
         if val_perf >= best_val_perf:
             best_val_perf = val_perf
@@ -305,9 +308,11 @@ if __name__=="__main__":
         print "using: word2vec vectors"
         U = W
     results = []
+    # datasets = make_idx_data_cv(revs, word_idx_map, 0, max_l=21,k=300, filter_h=5)
+    # print datasets
     r = range(0,10)    
     for i in r:
-        datasets = make_idx_data_cv(revs, word_idx_map, i, max_l=56,k=300, filter_h=5)
+        datasets = make_idx_data_cv(revs, word_idx_map, i, max_l=21,k=300, filter_h=5)
         perf = train_conv_net(datasets,
                               U,
                               lr_decay=0.95,

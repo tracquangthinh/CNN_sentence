@@ -3,7 +3,7 @@ import cPickle
 from collections import defaultdict
 import sys, re
 import pandas as pd
-
+from kinasedata import KinaseData
 def build_data_cv(data_folder, cv=10, clean_string=True):
     """
     Loads data and split into 10 folds.
@@ -19,7 +19,7 @@ def build_data_cv(data_folder, cv=10, clean_string=True):
             if clean_string:
                 orig_rev = clean_str(" ".join(rev))
             else:
-                orig_rev = " ".join(rev).lower()
+                orig_rev = " ".join(rev)
             words = set(orig_rev.split())
             for word in words:
                 vocab[word] += 1
@@ -35,7 +35,7 @@ def build_data_cv(data_folder, cv=10, clean_string=True):
             if clean_string:
                 orig_rev = clean_str(" ".join(rev))
             else:
-                orig_rev = " ".join(rev).lower()
+                orig_rev = " ".join(rev)
             words = set(orig_rev.split())
             for word in words:
                 vocab[word] += 1
@@ -78,9 +78,9 @@ def load_bin_vec(fname, vocab):
                     word = ''.join(word)
                     break
                 if ch != '\n':
-                    word.append(ch)   
+                    word.append(ch) 
             if word in vocab:
-               word_vecs[word] = np.fromstring(f.read(binary_len), dtype='float32')  
+               word_vecs[word] = np.fromstring(f.read(binary_len), dtype='float32')
             else:
                 f.read(binary_len)
     return word_vecs
@@ -92,6 +92,7 @@ def add_unknown_words(word_vecs, vocab, min_df=1, k=300):
     """
     for word in vocab:
         if word not in word_vecs and vocab[word] >= min_df:
+            print word
             word_vecs[word] = np.random.uniform(-0.25,0.25,k)  
 
 def clean_str(string, TREC=False):
@@ -112,7 +113,7 @@ def clean_str(string, TREC=False):
     string = re.sub(r"\)", " \) ", string) 
     string = re.sub(r"\?", " \? ", string) 
     string = re.sub(r"\s{2,}", " ", string)    
-    return string.strip() if TREC else string.strip().lower()
+    return string.strip() if TREC else string.strip()
 
 def clean_str_sst(string):
     """
@@ -120,11 +121,16 @@ def clean_str_sst(string):
     """
     string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)   
     string = re.sub(r"\s{2,}", " ", string)    
-    return string.strip().lower()
+    return string.strip()
 
-if __name__=="__main__":    
-    w2v_file = sys.argv[1]     
-    data_folder = ["rt-polarity.pos","rt-polarity.neg"]    
+if __name__=="__main__":
+    kData = KinaseData(pathELM="../SVM/All_ELM", biggerNegative=2,
+    newVector=True, windowSplit=1, nAround=4, filePos="kinase.pos",
+    fileNeg="kinase.neg")
+    kData.csvToArray()
+    
+    w2v_file = "[V]element"
+    data_folder = [kData.filePos, kData.fileNeg]
     print "loading data...",        
     revs, vocab = build_data_cv(data_folder, cv=10, clean_string=True)
     max_l = np.max(pd.DataFrame(revs)["num_words"])
@@ -140,7 +146,18 @@ if __name__=="__main__":
     W, word_idx_map = get_W(w2v)
     rand_vecs = {}
     add_unknown_words(rand_vecs, vocab)
+    #print rand_vecs
     W2, _ = get_W(rand_vecs)
     cPickle.dump([revs, W, W2, word_idx_map, vocab], open("mr.p", "wb"))
+    #print "revs:"
+    #print revs
+    #print "W:"
+    #print W
+    #print "W2:"
+    #print W2
+    #print "word_idx:"
+    #print word_idx_map
+    #print "vocab:"
+    #print vocab
     print "dataset created!"
     
